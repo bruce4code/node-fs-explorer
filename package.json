@@ -6,7 +6,12 @@
   "scripts": {
     "cli": "node cli/index.js",
     "list": "node cli/index.js list",
-    "help": "node cli/index.js help"
+    "help": "node cli/index.js help",
+    "test": "node --test",
+    "test:phase1": "node --test test/pathValidator.test.js",
+    "test:phase2": "node --test test/multipartParser.test.js test/router.test.js test/middleware.test.js test/api.test.js",
+    "test:unit": "node --test test/pathValidator.test.js test/multipartParser.test.js test/router.test.js test/middleware.test.js",
+    "test:api": "node --test test/api.test.js"
   },
   "keywords": [
     "nodejs",
