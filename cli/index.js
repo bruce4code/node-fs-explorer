@@ -19,6 +19,8 @@ const commands = {
   write: require('./commands/write'),
   copy: require('./commands/copy'),
   remove: require('./commands/remove'),
+  search: require('./commands/search'),
+  hash: require('./commands/hash'),
 };
 
 /**
@@ -36,17 +38,20 @@ function printUsage() {
     node cli write <file> <text>    写入文件内容
     node cli copy <src> <dst>       复制文件
     node cli remove <path>          删除文件或目录
+    node cli search <dir> <pattern> 搜索文件（支持正则）
+    node cli hash <file> [algo]     计算文件哈希（md5/sha1/sha256/sha512）
     node cli help                   显示本帮助信息
 
   示例:
     node cli list
-    node cli list ..
     node cli read package.json
     node cli info cli
     node cli mkdir test/new-folder
     node cli write test/hello.txt "Hello World"
     node cli copy package.json package.json.bak
     node cli remove test
+    node cli search . ".*\\.js$"
+    node cli hash package.json sha256
   `;
   console.log(usage);
 }

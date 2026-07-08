@@ -470,6 +470,137 @@ describe('API 集成测试', () => {
   // =============================================
   // 404 路由
   // =============================================
+  // =============================================
+  // 文件搜索（Phase 3）
+  // =============================================
+  describe('GET /api/files/search', () => {
+    it('应搜索匹配的文件', async () => {
+      const res = await request('GET', '/api/files/search?path=.&pattern=package');
+
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.data.success, true);
+      assert.ok(Array.isArray(res.data.data));
+      assert.ok(res.data.data.length > 0);
+      // 应找到 package.json
+      const names = res.data.data.map((e) => e.name);
+      assert.ok(names.includes('package.json'));
+    });
+
+    it('应支持 * 通配符搜索', async () => {
+      const res = await request('GET', '/api/files/search?path=cli&pattern=*.js');
+
+      assert.strictEqual(res.status, 200);
+      assert.ok(res.data.success);
+      assert.ok(res.data.data.length > 0);
+      const names = res.data.data.map((e) => e.name);
+      assert.ok(names.includes('index.js'));
+    });
+
+    it('无匹配时返回空数组', async () => {
+      const res = await request('GET', '/api/files/search?path=.&pattern=zzz_nonexistent_xxx');
+
+      assert.strictEqual(res.status, 200);
+      assert.ok(res.data.success);
+      assert.strictEqual(res.data.data.length, 0);
+    });
+
+    it('缺少 pattern 应返回 400', async () => {
+      const res = await request('GET', '/api/files/search?path=.');
+
+      assert.strictEqual(res.status, 400);
+      assert.strictEqual(res.data.success, false);
+    });
+  });
+
+  // =============================================
+  // 文件预览（Phase 3）
+  // =============================================
+  describe('GET /api/files/preview', () => {
+    it('应预览文本文件的前 N 行', async () => {
+      const res = await request('GET', '/api/files/preview?path=package.json&lines=3');
+
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.data.success, true);
+      assert.strictEqual(res.data.data.type, 'text');
+      assert.ok(res.data.data.content.length > 0);
+      assert.ok(res.data.data.extension, '.json');
+    });
+
+    it('缺少 path 应返回 400', async () => {
+      const res = await request('GET', '/api/files/preview');
+
+      assert.strictEqual(res.status, 400);
+      assert.strictEqual(res.data.success, false);
+    });
+
+    it('预览不存在的文件应返回 400', async () => {
+      const res = await request('GET', '/api/files/preview?path=nonexistent.txt');
+
+      assert.strictEqual(res.status, 400);
+      assert.strictEqual(res.data.success, false);
+    });
+  });
+
+  // =============================================
+  // 文件哈希（Phase 3）
+  // =============================================
+  describe('GET /api/files/hash', () => {
+    it('应计算文件的 MD5 值', async () => {
+      const res = await request('GET', '/api/files/hash?path=package.json');
+
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.data.success, true);
+      assert.strictEqual(res.data.data.algorithm, 'md5');
+      assert.ok(/^[a-f0-9]{32}$/.test(res.data.data.hash), 'MD5 应为 32 位十六进制');
+      assert.ok(res.data.data.size > 0);
+    });
+
+    it('应计算文件的 SHA256 值', async () => {
+      const res = await request('GET', '/api/files/hash?path=package.json&algorithm=sha256');
+
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.data.success, true);
+      assert.strictEqual(res.data.data.algorithm, 'sha256');
+      assert.ok(/^[a-f0-9]{64}$/.test(res.data.data.hash), 'SHA256 应为 64 位十六进制');
+    });
+
+    it('不支持的算法应返回 400', async () => {
+      const res = await request('GET', '/api/files/hash?path=package.json&algorithm=sha3');
+
+      assert.strictEqual(res.status, 400);
+      assert.strictEqual(res.data.success, false);
+    });
+
+    it('缺少 path 应返回 400', async () => {
+      const res = await request('GET', '/api/files/hash');
+
+      assert.strictEqual(res.status, 400);
+      assert.strictEqual(res.data.success, false);
+    });
+  });
+
+  // =============================================
+  // 操作日志（Phase 3）
+  // =============================================
+  describe('GET /api/files/logs', () => {
+    it('应返回操作日志列表', async () => {
+      // 先做几个操作产生日志
+      await request('GET', '/api/files?path=.');
+      await request('GET', '/api/files/hash?path=package.json');
+
+      const res = await request('GET', '/api/files/logs');
+
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.data.success, true);
+      assert.ok(Array.isArray(res.data.data));
+      // 至少应有 list 和 hash 操作
+      assert.ok(res.data.data.length > 0);
+    });
+  });
+
+  // =============================================
+  // 404 路由
+  // =============================================
   describe('404 处理', () => {
     it('未匹配的路由应返回 404', async () => {
       const res = await request('GET', '/api/unknown');
