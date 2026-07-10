@@ -9,6 +9,9 @@
  *   - multipart/form-data（只读取 rawBody，不解析，留给 upload 自行处理）
  */
 
+// 请求体大小上限（50MB），防止恶意大请求体导致 OOM
+const MAX_BODY_SIZE = 50 * 1024 * 1024;
+
 /**
  * 解析请求体
  * @param {object} req - http.IncomingMessage
@@ -17,12 +20,28 @@
 function bodyParser(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
+    let size = 0;
+    let done = false;
 
     req.on('data', (chunk) => {
+      if (done) return;
+      size += chunk.length;
+
+      // 超过大小上限：中止读取并拒绝，防止内存溢出
+      if (size > MAX_BODY_SIZE) {
+        done = true;
+        reject(new Error(`请求体过大，最大支持 ${MAX_BODY_SIZE / 1024 / 1024}MB`));
+        req.destroy();
+        return;
+      }
+
       chunks.push(chunk);
     });
 
     req.on('end', () => {
+      if (done) return;
+      done = true;
+
       // 原始请求体（Buffer），上传文件时需要用到
       req.rawBody = Buffer.concat(chunks);
 
@@ -47,6 +66,8 @@ function bodyParser(req) {
     });
 
     req.on('error', (err) => {
+      if (done) return;
+      done = true;
       reject(err);
     });
   });

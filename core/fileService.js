@@ -154,6 +154,46 @@ class FileService {
   }
 
   /**
+   * 移动/重命名文件或目录
+   * @param {string} srcPath - 源路径
+   * @param {string} dstPath - 目标路径
+   * @returns {Promise<{src: string, dst: string}>}
+   */
+  async move(srcPath, dstPath) {
+    const safeSrc = ensureExists(resolveSafePath(srcPath));
+    const safeDst = resolveSafePath(dstPath);
+
+    const parentDir = path.dirname(safeDst);
+    if (!fsSync.existsSync(parentDir)) {
+      await fs.mkdir(parentDir, { recursive: true });
+    }
+
+    await fs.rename(safeSrc, safeDst);
+    operationLogger.log('move', safeSrc, { target: safeDst });
+    return { src: safeSrc, dst: safeDst };
+  }
+
+  /**
+   * 保存上传的文件
+   * @param {string} targetDir - 目标目录
+   * @param {string} fileName - 原始文件名（会自动净化为 basename，防止路径穿越）
+   * @param {Buffer} data - 文件数据
+   * @returns {Promise<{path: string, fileName: string, size: number}>}
+   */
+  async upload(targetDir, fileName, data) {
+    const safeTargetDir = resolveSafePath(targetDir);
+    // 净化文件名：只保留 basename，防止 fileName 含 ../ 逃逸项目根目录
+    const safeFileName = path.basename(fileName);
+    const filePath = path.join(safeTargetDir, safeFileName);
+
+    await fs.mkdir(safeTargetDir, { recursive: true });
+    await fs.writeFile(filePath, data);
+
+    operationLogger.log('upload', filePath, { size: data.length, fileName: safeFileName });
+    return { path: filePath, fileName: safeFileName, size: data.length };
+  }
+
+  /**
    * 删除文件或目录
    * @param {string} targetPath - 目标路径
    * @returns {Promise<string>} 被删除的路径

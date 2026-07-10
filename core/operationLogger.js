@@ -18,6 +18,14 @@ const EventEmitter = require('events');
 class OperationLogger extends EventEmitter {
   constructor() {
     super();
+    // 内存中保留最近 100 条操作历史，作为实例属性管理
+    this._history = [];
+
+    // 订阅通用 operation 事件，自动收集历史
+    this.on('operation', (entry) => {
+      this._history.push(entry);
+      if (this._history.length > 100) this._history.shift();
+    });
   }
 
   /**
@@ -45,20 +53,11 @@ class OperationLogger extends EventEmitter {
    * 获取最近的操作历史（内存中最多保留 100 条）
    */
   history(max = 100) {
-    return this._history ? this._history.slice(-max) : [];
+    return this._history.slice(-max);
   }
 }
 
 // 单例导出
 const instance = new OperationLogger();
-const history = [];
-
-// 自动记录最近 100 条到内存
-instance.on('operation', (entry) => {
-  history.push(entry);
-  if (history.length > 100) history.shift();
-});
-
-instance._history = history;
 
 module.exports = instance;

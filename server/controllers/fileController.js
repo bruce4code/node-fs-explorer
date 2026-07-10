@@ -110,20 +110,10 @@ async function upload(req, res) {
       return sendError(res, 400, '未找到上传的文件');
     }
 
-    // 保存文件
-    const safeTargetDir = require('../../core/pathValidator').resolveSafePath(targetDir);
-    const fileName = filePart.filename;
-    const filePath = path.join(safeTargetDir, fileName);
+    // 保存文件（路径校验、目录创建、日志记录统一交给 fileService）
+    const result = await fileService.upload(targetDir, filePart.filename, filePart.data);
 
-    // 确保目标目录存在
-    await fs.mkdir(safeTargetDir, { recursive: true });
-    await fs.writeFile(filePath, filePart.data);
-
-    sendSuccess(res, {
-      path: filePath,
-      fileName,
-      size: filePart.data.length,
-    });
+    sendSuccess(res, result);
   } catch (err) {
     sendError(res, 400, `上传失败: ${err.message}`);
   }
@@ -216,17 +206,9 @@ async function move(req, res) {
       return sendError(res, 400, '请提供 src 和 dst 参数');
     }
 
-    const pathValidator = require('../../core/pathValidator');
-    const safeSrc = pathValidator.ensureExists(pathValidator.resolveSafePath(src));
-    const safeDst = pathValidator.resolveSafePath(dst);
-
-    const parentDir = path.dirname(safeDst);
-    if (!require('fs').existsSync(parentDir)) {
-      await fs.mkdir(parentDir, { recursive: true });
-    }
-
-    await fs.rename(safeSrc, safeDst);
-    sendSuccess(res, { src: safeSrc, dst: safeDst });
+    // 路径校验、目录创建、日志记录统一交给 fileService
+    const result = await fileService.move(src, dst);
+    sendSuccess(res, result);
   } catch (err) {
     sendError(res, 400, `移动失败: ${err.message}`);
   }
