@@ -5,10 +5,16 @@
 const FileService = require('../../core/fileService');
 const path = require('path');
 const fs = require('fs').promises;
+const fsSync = require('fs');
+const os = require('os');
 const { pipeline } = require('stream');
 const { parseMultipart, extractBoundary } = require('../../lib/multipartParser');
+const { createMultipartStream } = require('../../lib/multipartStreamParser');
 
 const fileService = new FileService();
+
+// 单文件上传大小上限（200MB），超过则中止
+const MAX_UPLOAD_SIZE = 200 * 1024 * 1024;
 
 // =============================================
 // 响应辅助函数
@@ -77,46 +83,98 @@ async function mkdir(req, res) {
 }
 
 // =============================================
-// 上传文件，用于 POST /api/files/upload
+// 上传文件（流式），用于 POST /api/files/upload
+// 边接收边写盘，不缓冲整个文件到内存，支持大文件
+//
+// 实现说明：
+//   multipart 字段顺序不保证（path 可能在 file 之前或之后），
+//   因此 file 先流式写入系统临时目录，所有 part 解析完后，
+//   再用 path 字段把文件移动到最终位置。
+//   这样既保持流式（不缓冲整个文件），又与字段顺序无关。
 // =============================================
-async function upload(req, res) {
-  try {
-    const contentType = req.headers['content-type'] || '';
+function upload(req, res) {
+  const contentType = req.headers['content-type'] || '';
 
-    if (!contentType.includes('multipart/form-data')) {
-      return sendError(res, 400, '请使用 multipart/form-data 格式上传');
-    }
+  if (!contentType.includes('multipart/form-data')) {
+    return sendError(res, 400, '请使用 multipart/form-data 格式上传');
+  }
 
-    const boundary = extractBoundary(contentType);
-    if (!boundary) {
-      return sendError(res, 400, '无法解析 boundary');
-    }
+  const boundary = extractBoundary(contentType);
+  if (!boundary) {
+    return sendError(res, 400, '无法解析 boundary');
+  }
 
-    const parts = parseMultipart(req.rawBody, boundary);
+  const fields = {};
+  // 临时文件信息：先写到 os.tmpdir()，解析完成后再移动到最终位置
+  let tmpFile = null; // { tmpPath, fileName, size, writeDone }
 
-    // 查找文件部分和可选的目标路径
-    let filePart = null;
-    let targetDir = '.';
+  const parser = createMultipartStream(boundary, {
+    onField(name, value) {
+      fields[name] = value;
+    },
+    onFileStart(name, filename) {
+      const safeFileName = path.basename(filename) || 'unnamed';
+      // 临时文件路径：系统临时目录 + 随机后缀防冲突
+      const tmpPath = path.join(os.tmpdir(), `fms-upload-${Date.now()}-${Math.random().toString(36).slice(2)}-${safeFileName}`);
 
-    for (const part of parts) {
-      if (part.filename) {
-        filePart = part;
-      } else if (part.name === 'path' && part.data.length > 0) {
-        targetDir = part.data.toString('utf-8').trim() || '.';
+      const writeStream = fsSync.createWriteStream(tmpPath, { flags: 'w' });
+      // 大小限制 Transform：超过上限则中止
+      const sizeLimiter = new (require('stream').Transform)({
+        transform(chunk, encoding, cb) {
+          this.bytesWritten = (this.bytesWritten || 0) + chunk.length;
+          if (this.bytesWritten > MAX_UPLOAD_SIZE) {
+            this.destroy(new Error(`文件过大，单文件上限 ${MAX_UPLOAD_SIZE} 字节`));
+            fsSync.unlink(tmpPath, () => {});
+            return;
+          }
+          cb(null, chunk);
+        },
+      });
+      sizeLimiter.pipe(writeStream);
+
+      tmpFile = { tmpPath, fileName: safeFileName, size: 0, writeDone: null };
+      sizeLimiter.on('data', (chunk) => { tmpFile.size += chunk.length; });
+      tmpFile.writeDone = new Promise((resolve, reject) => {
+        writeStream.on('finish', () => resolve());
+        writeStream.on('error', reject);
+      });
+
+      return sizeLimiter;
+    },
+  });
+
+  pipeline(req, parser, async (err) => {
+    if (err) {
+      // 清理临时文件
+      if (tmpFile) fsSync.unlink(tmpFile.tmpPath, () => {});
+      if (!res.headersSent) {
+        sendError(res, 400, `上传失败: ${err.message}`);
       }
+      return;
     }
 
-    if (!filePart) {
+    if (!tmpFile) {
       return sendError(res, 400, '未找到上传的文件');
     }
 
-    // 保存文件（路径校验、目录创建、日志记录统一交给 fileService）
-    const result = await fileService.upload(targetDir, filePart.filename, filePart.data);
+    try {
+      // 等待临时文件落盘完成
+      await tmpFile.writeDone;
 
-    sendSuccess(res, result);
-  } catch (err) {
-    sendError(res, 400, `上传失败: ${err.message}`);
-  }
+      // 用 path 字段把临时文件移动到最终位置（路径校验、目录创建、日志交给 fileService）
+      const targetDir = (fields.path && fields.path.trim()) || '.';
+      const result = await fileService.moveUpload(tmpFile.tmpPath, targetDir, tmpFile.fileName, tmpFile.size);
+      sendSuccess(res, result);
+    } catch (moveErr) {
+      // 清理临时文件
+      if (fsSync.existsSync(tmpFile.tmpPath)) {
+        fsSync.unlink(tmpFile.tmpPath, () => {});
+      }
+      if (!res.headersSent) {
+        sendError(res, 400, `上传失败: ${moveErr.message}`);
+      }
+    }
+  });
 }
 
 // =============================================

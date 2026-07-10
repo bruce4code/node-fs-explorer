@@ -12,6 +12,8 @@ const logger = new Logger();
 
 // 中间件
 const cors = require('./middleware/cors');
+const auth = require('./middleware/auth');
+const rateLimit = require('./middleware/rateLimit');
 const bodyParser = require('./middleware/bodyParser');
 
 // 路由
@@ -32,9 +34,19 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // 2. 鉴权（API Token，未配置则跳过）
+  if (auth(req, res)) {
+    return;
+  }
+
+  // 3. 限流（基于 IP 的滑动窗口）
+  if (rateLimit(req, res)) {
+    return;
+  }
+
   try {
-    // 2. 解析请求体（GET/HEAD 请求没有 body，无需解析）
-    //    注意: 这里始终解析 rawBody，上传时 multipart 由控制器自行处理
+    // 4. 解析请求体（GET/HEAD 请求没有 body，无需解析）
+    //    multipart 请求由 bodyParser 跳过，交给 upload 控制器流式处理
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       await bodyParser(req);
     } else {
@@ -42,7 +54,7 @@ const server = http.createServer(async (req, res) => {
       req.body = {};
     }
 
-    // 3. 路由分发
+    // 5. 路由分发
     await router.handle(req, res);
   } catch (err) {
     // 全局异常捕获
@@ -65,11 +77,16 @@ server.listen(PORT, HOST, () => {
   logger.info(` 接口前缀: /api/files`);
   logger.info(`================================`);
   logger.info(``);
+  logger.info(` 中间件:`);
+  logger.info(`   CORS        已启用`);
+  logger.info(`   鉴权        ${process.env.API_TOKEN ? '已启用 (X-API-Token)' : '未启用 (设置 API_TOKEN 环境变量开启)'}`);
+  logger.info(`   限流        已启用 (${process.env.RATE_LIMIT_MAX || 100} 次 / ${process.env.RATE_LIMIT_WINDOW || 60} 秒)`);
+  logger.info(``);
   logger.info(` 可用的接口:`);
   logger.info(`   GET    /api/files             浏览目录`);
   logger.info(`   GET    /api/files/info?path=   文件详情`);
   logger.info(`   GET    /api/files/download?path= 下载文件`);
-  logger.info(`   POST   /api/files/upload       上传文件`);
+  logger.info(`   POST   /api/files/upload       上传文件(流式)`);
   logger.info(`   POST   /api/files/mkdir        创建目录`);
   logger.info(`   DELETE /api/files?path=        删除文件/目录`);
   logger.info(`   PUT    /api/files/move         移动/重命名`);

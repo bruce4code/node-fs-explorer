@@ -12,6 +12,8 @@ const path = require('node:path');
 
 // 引入服务组件（与 server/index.js 相同的中间件链）
 const cors = require('../server/middleware/cors');
+const auth = require('../server/middleware/auth');
+const rateLimit = require('../server/middleware/rateLimit');
 const bodyParser = require('../server/middleware/bodyParser');
 const router = require('../server/routes');
 
@@ -108,13 +110,22 @@ before(async () => {
   // 创建测试目录
   fs.mkdirSync(TEST_DIR, { recursive: true });
 
+  // 重置限流状态，避免不同测试文件间相互影响
+  rateLimit._reset();
+
   return new Promise((resolve) => {
     process.env.PORT = '0'; // 随机端口
     const http = require('node:http');
 
     server = http.createServer(async (req, res) => {
       if (cors(req, res)) return;
-
+      // 测试环境不启用鉴权（API_TOKEN 未设置则 auth 直接放行）
+      if (auth(req, res)) return;
+      // 测试环境不启用限流（放宽上限避免测试自身被限）
+      // 如需测试限流，单独在 rateLimit.test.js 中验证
+      if (req.headers['x-test-ratelimit']) {
+        if (rateLimit(req, res)) return;
+      }
       try {
         if (req.method !== 'GET' && req.method !== 'HEAD') {
           await bodyParser(req);

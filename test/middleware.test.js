@@ -139,7 +139,7 @@ describe('BodyParser 中间件', () => {
     assert.deepStrictEqual(req.body, {}, '解析失败的 JSON 应返回空对象');
   });
 
-  it('multipart/form-data 应只解析 rawBody 不解析 body', async () => {
+  it('multipart/form-data 应跳过缓冲，留给控制器流式处理', async () => {
     const bodyData = [
       '------WebKitFormBoundary\r\n',
       'Content-Disposition: form-data; name="file"; filename="test.txt"\r\n',
@@ -158,10 +158,10 @@ describe('BodyParser 中间件', () => {
 
     await bodyParser(req);
 
+    // multipart 不缓冲 rawBody（流式处理，避免大文件 OOM）
     assert.ok(req.rawBody instanceof Buffer, 'rawBody 应为 Buffer');
-    assert.ok(req.rawBody.length > 0, 'rawBody 不应为空');
-    // multipart 不解析 body，留给控制器自行处理
-    assert.deepStrictEqual(req.body, {});
+    assert.strictEqual(req.rawBody.length, 0, 'multipart 的 rawBody 应为空（留给控制器流式处理）');
+    assert.deepStrictEqual(req.body, {}, 'multipart 不解析 body');
   });
 
   it('空请求体应返回空 Buffer 和空对象', async () => {

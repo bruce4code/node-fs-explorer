@@ -174,23 +174,100 @@ class FileService {
   }
 
   /**
-   * 保存上传的文件
+   * 保存上传的文件（小文件，整 Buffer 写入）
    * @param {string} targetDir - 目标目录
    * @param {string} fileName - 原始文件名（会自动净化为 basename，防止路径穿越）
    * @param {Buffer} data - 文件数据
    * @returns {Promise<{path: string, fileName: string, size: number}>}
    */
   async upload(targetDir, fileName, data) {
+    const { filePath, safeFileName, writeStream, sizeTracker } = this._prepareUpload(targetDir, fileName);
+    await new Promise((resolve, reject) => {
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+      writeStream.end(data);
+    });
+    const size = sizeTracker.size || data.length;
+    operationLogger.log('upload', filePath, { size, fileName: safeFileName });
+    return { path: filePath, fileName: safeFileName, size };
+  }
+
+  /**
+   * 流式上传：准备写入流 + 大小限制 Transform，供 multipart 解析器边解析边写入
+   *
+   * 用法：
+   *   const handle = fileService.prepareUploadStream(targetDir, fileName, maxSize);
+   *   pipeline(parser, handle.sizeLimiter, handle.writeStream, callback);
+   *   handle.writeStream.on('finish', () => fileService.logUpload(handle, ...));
+   *
+   * @param {string} targetDir - 目标目录
+   * @param {string} fileName - 原始文件名（自动净化 basename）
+   * @param {number} [maxSize] - 单文件大小上限（字节），超过则中止
+   * @returns {{filePath: string, safeFileName: string, writeStream: fs.WriteStream, sizeLimiter: import('stream').Transform}}
+   */
+  prepareUploadStream(targetDir, fileName, maxSize) {
     const safeTargetDir = resolveSafePath(targetDir);
-    // 净化文件名：只保留 basename，防止 fileName 含 ../ 逃逸项目根目录
-    const safeFileName = path.basename(fileName);
+    const safeFileName = path.basename(fileName) || 'unnamed';
     const filePath = path.join(safeTargetDir, safeFileName);
 
-    await fs.mkdir(safeTargetDir, { recursive: true });
-    await fs.writeFile(filePath, data);
+    fsSync.mkdirSync(safeTargetDir, { recursive: true });
+    const writeStream = fsSync.createWriteStream(filePath, { flags: 'w' });
 
-    operationLogger.log('upload', filePath, { size: data.length, fileName: safeFileName });
-    return { path: filePath, fileName: safeFileName, size: data.length };
+    // 大小限制 Transform：统计写入字节，超限则销毁流并清理文件
+    const sizeLimiter = new (require('stream').Transform)({
+      transform(chunk, encoding, cb) {
+        this.bytesWritten = (this.bytesWritten || 0) + chunk.length;
+        if (maxSize && this.bytesWritten > maxSize) {
+          this.destroy(new Error(`文件过大，单文件上限 ${maxSize} 字节`));
+          // 清理半成品文件
+          fsSync.unlink(filePath, () => {});
+          return;
+        }
+        cb(null, chunk);
+      },
+    });
+
+    return { filePath, safeFileName, writeStream, sizeLimiter };
+  }
+
+  /**
+   * 记录上传完成日志（配合 prepareUploadStream 使用）
+   */
+  logUpload(handle, size) {
+    operationLogger.log('upload', handle.filePath, { size, fileName: handle.safeFileName });
+  }
+
+  /**
+   * 把临时文件移动到最终上传位置（流式上传的第二阶段）
+   * @param {string} tmpPath - 临时文件路径（系统临时目录）
+   * @param {string} targetDir - 目标目录
+   * @param {string} fileName - 净化后的文件名
+   * @param {number} size - 文件大小（字节数）
+   * @returns {Promise<{path: string, fileName: string, size: number}>}
+   */
+  async moveUpload(tmpPath, targetDir, fileName, size) {
+    const safeTargetDir = resolveSafePath(targetDir);
+    const safeFileName = path.basename(fileName) || 'unnamed';
+    const finalPath = path.join(safeTargetDir, safeFileName);
+
+    // 确保目标目录存在
+    fsSync.mkdirSync(safeTargetDir, { recursive: true });
+
+    // 移动文件（跨设备时 rename 会失败，回退到 copy + unlink）
+    try {
+      await fs.rename(tmpPath, finalPath);
+    } catch (renameErr) {
+      if (renameErr.code === 'EXDEV') {
+        // 跨设备：复制后删除临时文件
+        await fs.copyFile(tmpPath, finalPath);
+        await fs.unlink(tmpPath);
+      } else {
+        throw renameErr;
+      }
+    }
+
+    operationLogger.log('upload', finalPath, { size, fileName: safeFileName });
+    return { path: finalPath, fileName: safeFileName, size };
   }
 
   /**

@@ -6,11 +6,19 @@
  * 支持的 Content-Type:
  *   - application/json
  *   - application/x-www-form-urlencoded
- *   - multipart/form-data（只读取 rawBody，不解析，留给 upload 自行处理）
+ *   - multipart/form-data：不解析、不读取，留给 upload 控制器流式处理
+ *     （这样大文件上传不会全量进内存）
  */
 
 // 请求体大小上限（50MB），防止恶意大请求体导致 OOM
 const MAX_BODY_SIZE = 50 * 1024 * 1024;
+
+/**
+ * 判断是否为 multipart 请求（需流式处理，跳过缓冲）
+ */
+function isMultipart(req) {
+  return (req.headers['content-type'] || '').includes('multipart/form-data');
+}
 
 /**
  * 解析请求体
@@ -18,6 +26,13 @@ const MAX_BODY_SIZE = 50 * 1024 * 1024;
  * @returns {Promise<void>}
  */
 function bodyParser(req) {
+  // multipart 交给控制器流式处理，这里只初始化空 body
+  if (isMultipart(req)) {
+    req.rawBody = Buffer.alloc(0);
+    req.body = {};
+    return Promise.resolve();
+  }
+
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
@@ -42,7 +57,7 @@ function bodyParser(req) {
       if (done) return;
       done = true;
 
-      // 原始请求体（Buffer），上传文件时需要用到
+      // 原始请求体（Buffer）
       req.rawBody = Buffer.concat(chunks);
 
       const contentType = req.headers['content-type'] || '';
@@ -58,7 +73,6 @@ function bodyParser(req) {
         const params = new URLSearchParams(req.rawBody.toString('utf-8'));
         req.body = Object.fromEntries(params);
       } else {
-        // multipart/form-data 或其他类型不解析，留给具体控制器
         req.body = {};
       }
 
