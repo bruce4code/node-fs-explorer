@@ -2,3 +2,10 @@ node_modules/
 uploads/
 .DS_Store
 *.log
+*.md5
+
+# 测试临时文件
+.test-temp/
+.test-upload/
+hello.txt
+test-folder2/

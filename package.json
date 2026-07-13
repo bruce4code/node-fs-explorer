@@ -7,6 +7,8 @@
     "cli": "node cli/index.js",
     "list": "node cli/index.js list",
     "help": "node cli/index.js help",
+    "start": "node server/cluster.js",
+    "start:single": "node server/index.js",
     "test": "node --test",
     "test:phase1": "node --test test/pathValidator.test.js",
     "test:phase2": "node --test test/multipartParser.test.js test/router.test.js test/middleware.test.js test/api.test.js",

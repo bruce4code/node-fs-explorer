@@ -12,7 +12,7 @@ const logger = new Logger();
 
 // 中间件
 const cors = require('./middleware/cors');
-const auth = require('./middleware/auth');
+const jwtAuth = require('./middleware/jwtAuth');
 const rateLimit = require('./middleware/rateLimit');
 const bodyParser = require('./middleware/bodyParser');
 
@@ -34,8 +34,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 2. 鉴权（API Token，未配置则跳过）
-  if (auth(req, res)) {
+  // 2. 鉴权（JWT 优先，未配置 JWT_SECRET 则回退 API Token，都未配置则关闭）
+  if (jwtAuth(req, res)) {
     return;
   }
 
@@ -79,10 +79,16 @@ server.listen(PORT, HOST, () => {
   logger.info(``);
   logger.info(` 中间件:`);
   logger.info(`   CORS        已启用`);
-  logger.info(`   鉴权        ${process.env.API_TOKEN ? '已启用 (X-API-Token)' : '未启用 (设置 API_TOKEN 环境变量开启)'}`);
+  logger.info(`   鉴权        ${process.env.JWT_SECRET ? 'JWT (Bearer Token)' : process.env.API_TOKEN ? 'API Token (X-API-Token)' : '未启用'}`);
   logger.info(`   限流        已启用 (${process.env.RATE_LIMIT_MAX || 100} 次 / ${process.env.RATE_LIMIT_WINDOW || 60} 秒)`);
   logger.info(``);
   logger.info(` 可用的接口:`);
+  logger.info(`   认证:`);
+  logger.info(`   POST   /api/auth/login         登录签发 JWT`);
+  logger.info(`   POST   /api/auth/refresh       刷新令牌`);
+  logger.info(`   GET    /api/auth/verify        验证令牌`);
+  logger.info(`   POST   /api/auth/logout        登出撤销令牌`);
+  logger.info(`   文件:`);
   logger.info(`   GET    /api/files             浏览目录`);
   logger.info(`   GET    /api/files/info?path=   文件详情`);
   logger.info(`   GET    /api/files/download?path= 下载文件`);
@@ -90,6 +96,12 @@ server.listen(PORT, HOST, () => {
   logger.info(`   POST   /api/files/mkdir        创建目录`);
   logger.info(`   DELETE /api/files?path=        删除文件/目录`);
   logger.info(`   PUT    /api/files/move         移动/重命名`);
+  logger.info(`   分片上传:`);
+  logger.info(`   POST   /api/files/upload/init      初始化分片上传`);
+  logger.info(`   POST   /api/files/upload/chunk     上传单个分片`);
+  logger.info(`   POST   /api/files/upload/complete  合并分片`);
+  logger.info(`   GET    /api/files/upload/status    查询上传状态`);
+  logger.info(`   POST   /api/files/upload/abort     取消上传`);
 });
 
 // =============================================

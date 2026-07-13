@@ -12,7 +12,7 @@ const path = require('node:path');
 
 // 引入服务组件（与 server/index.js 相同的中间件链）
 const cors = require('../server/middleware/cors');
-const auth = require('../server/middleware/auth');
+const jwtAuth = require('../server/middleware/jwtAuth');
 const rateLimit = require('../server/middleware/rateLimit');
 const bodyParser = require('../server/middleware/bodyParser');
 const router = require('../server/routes');
@@ -119,8 +119,8 @@ before(async () => {
 
     server = http.createServer(async (req, res) => {
       if (cors(req, res)) return;
-      // 测试环境不启用鉴权（API_TOKEN 未设置则 auth 直接放行）
-      if (auth(req, res)) return;
+      // 测试环境不启用鉴权（JWT_SECRET/API_TOKEN 未设置则 jwtAuth 直接放行）
+      if (jwtAuth(req, res)) return;
       // 测试环境不启用限流（放宽上限避免测试自身被限）
       // 如需测试限流，单独在 rateLimit.test.js 中验证
       if (req.headers['x-test-ratelimit']) {
