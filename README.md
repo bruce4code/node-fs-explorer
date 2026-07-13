@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/bruce4code/node-fs-explorer/actions/workflows/ci.yml"><img src="https://github.com/bruce4code/node-fs-explorer/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <img src="https://img.shields.io/badge/node-%3E%3D18.0-brightgreen" alt="Node version" />
   <img src="https://img.shields.io/badge/dependencies-0-blue" alt="Zero dependencies" />
   <img src="https://img.shields.io/badge/tests-143%20passing-green" alt="Tests" />
