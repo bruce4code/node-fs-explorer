@@ -5,7 +5,7 @@
  */
 const { describe, it, beforeEach } = require('node:test');
 const assert = require('node:assert');
-const jwt = require('../lib/jwt');
+const jwt = require('../packages/node-utils/jwt');
 
 const SECRET = 'test-secret-key-12345';
 const WRONG_SECRET = 'wrong-secret';

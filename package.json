@@ -1,25 +1,20 @@
 {
-  "name": "file-manager",
+  "name": "node-fs-explorer",
   "version": "1.0.0",
-  "description": "Node.js 原生文件管理系统 - 系统学习 Node.js 核心知识",
-  "main": "cli/index.js",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
   "scripts": {
-    "cli": "node cli/index.js",
-    "list": "node cli/index.js list",
-    "help": "node cli/index.js help",
-    "start": "node server/cluster.js",
-    "start:single": "node server/index.js",
-    "test": "node --test",
-    "test:phase1": "node --test test/pathValidator.test.js",
-    "test:phase2": "node --test test/multipartParser.test.js test/router.test.js test/middleware.test.js test/api.test.js",
+    "dev": "pnpm --parallel --filter @file-manager/server --filter @file-manager/web dev",
+    "dev:web": "pnpm --filter @file-manager/web dev",
+    "dev:server": "pnpm --filter @file-manager/server dev",
+    "cli": "pnpm --filter @file-manager/cli start --",
+    "start": "pnpm --filter @file-manager/server start",
+    "start:single": "pnpm --filter @file-manager/server start:single",
+    "test": "pnpm test:backend && pnpm --filter @file-manager/web test",
+    "test:backend": "node --test",
     "test:unit": "node --test test/pathValidator.test.js test/multipartParser.test.js test/router.test.js test/middleware.test.js",
-    "test:api": "node --test test/api.test.js"
-  },
-  "keywords": [
-    "nodejs",
-    "file-manager",
-    "learning",
-    "cli"
-  ],
-  "license": "MIT"
+    "test:api": "node --test test/api.test.js",
+    "build": "pnpm --filter @file-manager/web build",
+    "lint": "pnpm --recursive --if-present lint"
+  }
 }

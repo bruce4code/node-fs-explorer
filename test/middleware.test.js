@@ -58,7 +58,7 @@ function createMockRes() {
 // CORS 中间件测试
 // =============================================
 describe('CORS 中间件', () => {
-  const cors = require('../server/middleware/cors');
+  const cors = require('../apps/server/middleware/cors');
 
   it('应为所有请求设置 CORS 头', () => {
     const req = createMockReq('GET', '/api/files');
@@ -97,7 +97,7 @@ describe('CORS 中间件', () => {
 // BodyParser 中间件测试
 // =============================================
 describe('BodyParser 中间件', () => {
-  const bodyParser = require('../server/middleware/bodyParser');
+  const bodyParser = require('../apps/server/middleware/bodyParser');
 
   it('应解析 application/json 请求体', async () => {
     const req = createMockReq(

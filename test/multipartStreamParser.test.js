@@ -10,7 +10,7 @@ const { pipeline } = require('node:stream');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
-const { createMultipartStream } = require('../lib/multipartStreamParser');
+const { createMultipartStream } = require('../packages/node-utils/multipartStreamParser');
 
 /**
  * 构造 multipart body Buffer

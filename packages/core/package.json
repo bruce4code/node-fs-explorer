@@ -1,0 +1,7 @@
+{
+  "name": "@file-manager/core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "fileService.js"
+}

@@ -11,7 +11,7 @@ const assert = require('node:assert');
 const { execSync } = require('node:child_process');
 const path = require('node:path');
 
-const RATE_LIMIT_MODULE = path.resolve(__dirname, '../server/middleware/rateLimit');
+const RATE_LIMIT_MODULE = path.resolve(__dirname, '../apps/server/middleware/rateLimit');
 
 /**
  * 在子进程中以指定环境变量运行限流测试（单行脚本避免转义问题）

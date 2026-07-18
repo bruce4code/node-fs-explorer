@@ -10,8 +10,8 @@ const fsSync = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const chunkUploadService = require('../core/chunkUploadService');
-const pathValidator = require('../core/pathValidator');
+const chunkUploadService = require('../packages/core/chunkUploadService');
+const pathValidator = require('../packages/core/pathValidator');
 
 const TEST_DIR = path.resolve(__dirname, '../.test-chunk-temp');
 const PROJECT_ROOT = path.resolve(__dirname, '..');

@@ -9,9 +9,9 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const { execSync } = require('node:child_process');
 const path = require('node:path');
-const auth = require('../server/middleware/auth');
+const auth = require('../apps/server/middleware/auth');
 
-const AUTH_MODULE = path.resolve(__dirname, '../server/middleware/auth');
+const AUTH_MODULE = path.resolve(__dirname, '../apps/server/middleware/auth');
 
 /**
  * 创建 mock req

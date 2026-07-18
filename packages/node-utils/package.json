@@ -1,0 +1,7 @@
+{
+  "name": "@file-manager/node-utils",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "logger.js"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@file-manager/server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "start": "node cluster.js",
+    "start:single": "node index.js"
+  },
+  "dependencies": {
+    "@file-manager/core": "workspace:*",
+    "@file-manager/node-utils": "workspace:*"
+  }
+}

@@ -1,4 +1,7 @@
 node_modules/
+.pnpm-store/
+.next/
+coverage/
 uploads/
 .DS_Store
 *.log

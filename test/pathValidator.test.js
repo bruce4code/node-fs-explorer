@@ -8,7 +8,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const path = require('node:path');
 const fs = require('node:fs');
-const pathValidator = require('../core/pathValidator');
+const pathValidator = require('../packages/core/pathValidator');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 
@@ -22,13 +22,13 @@ describe('pathValidator.resolveSafePath', () => {
   });
 
   it('应解析子目录的相对路径', () => {
-    const result = pathValidator.resolveSafePath('cli');
-    assert.strictEqual(result, path.join(PROJECT_ROOT, 'cli'));
+    const result = pathValidator.resolveSafePath('apps/cli');
+    assert.strictEqual(result, path.join(PROJECT_ROOT, 'apps', 'cli'));
   });
 
   it('应解析多级相对路径', () => {
-    const result = pathValidator.resolveSafePath('cli/commands');
-    assert.strictEqual(result, path.join(PROJECT_ROOT, 'cli', 'commands'));
+    const result = pathValidator.resolveSafePath('apps/cli/commands');
+    assert.strictEqual(result, path.join(PROJECT_ROOT, 'apps', 'cli', 'commands'));
   });
 
   it('应抛出错误 - 路径穿越 ../../', () => {

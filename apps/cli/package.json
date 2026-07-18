@@ -1,0 +1,13 @@
+{
+  "name": "@file-manager/cli",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@file-manager/core": "workspace:*",
+    "@file-manager/node-utils": "workspace:*"
+  }
+}

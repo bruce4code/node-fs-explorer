@@ -15,7 +15,7 @@ const http = require('http');
 const path = require('path');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
-const CLUSTER_ENTRY = path.join(PROJECT_ROOT, 'server/cluster.js');
+const CLUSTER_ENTRY = path.join(PROJECT_ROOT, 'apps/server/cluster.js');
 
 // =============================================
 // 辅助：启动 cluster 并等待 worker 就绪

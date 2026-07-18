@@ -88,23 +88,26 @@ The project is organized into 5 progressive phases:
 git clone https://github.com/bruce4code/node-fs-explorer.git
 cd node-fs-explorer
 
-# Run tests (no install needed!)
-npm test
+# Install workspace dependencies
+pnpm install
+
+# Run tests
+pnpm test:backend
 
 # CLI mode
-node cli list
-node cli read package.json
-node cli search . "*.js"
-node cli hash package.json sha256
+pnpm cli -- list
+pnpm cli -- read package.json
+pnpm cli -- search . "*.js"
+pnpm cli -- hash package.json sha256
 
 # API mode (single process)
-node server/index.js
+JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' pnpm dev:server
 
 # API mode (multi-process cluster)
-node server/cluster.js
+JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' pnpm start
 
 # Auth enabled
-JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' node server/index.js
+JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' pnpm dev
 ```
 
 ---
@@ -112,9 +115,9 @@ JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' node server/index.js
 ## 🧪 Testing
 
 ```bash
-npm test              # Run all 143 tests
-npm run test:unit     # Unit tests only
-npm run test:api      # API integration tests
+pnpm test:backend     # Run the backend suite
+pnpm test:unit        # Unit tests only
+pnpm test:api         # API integration tests
 ```
 
 All tests use Node.js native [`node:test`](https://nodejs.org/api/test.html) — no extra test framework required.
@@ -191,7 +194,30 @@ All tests use Node.js native [`node:test`](https://nodejs.org/api/test.html) —
 
 ```
 node-fs-explorer/
-├── cli/                    # CLI commands (list/read/info/mkdir/...)
+├── apps/
+│   ├── web/                # Next.js file management console and BFF
+│   ├── cli/                # CLI commands (list/read/info/mkdir/...)
+│   └── server/             # HTTP API server
+├── packages/
+│   ├── core/               # Shared file-system business logic
+│   ├── node-utils/         # JWT, multipart and logger utilities
+│   └── contracts/          # Web API TypeScript contracts
+├── test/                   # Native node:test suite
+├── pnpm-workspace.yaml
+├── package.json
+├── README.md
+```
+
+### Web console
+
+```bash
+JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' pnpm dev
+```
+
+Open http://localhost:3000 and sign in with the configured user. The Next.js app keeps the JWT in an HttpOnly cookie and forwards requests to `FILE_API_URL` (defaults to `http://127.0.0.1:3300`).
+
+```
+Legacy structure (before the pnpm migration):
 ├── server/                 # HTTP API server
 │   ├── index.js            # Entry point with middleware chain
 │   ├── router.js           # Native URL router

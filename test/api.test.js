@@ -11,11 +11,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 // 引入服务组件（与 server/index.js 相同的中间件链）
-const cors = require('../server/middleware/cors');
-const jwtAuth = require('../server/middleware/jwtAuth');
-const rateLimit = require('../server/middleware/rateLimit');
-const bodyParser = require('../server/middleware/bodyParser');
-const router = require('../server/routes');
+const cors = require('../apps/server/middleware/cors');
+const jwtAuth = require('../apps/server/middleware/jwtAuth');
+const rateLimit = require('../apps/server/middleware/rateLimit');
+const bodyParser = require('../apps/server/middleware/bodyParser');
+const router = require('../apps/server/routes');
 
 // =============================================
 // 测试环境配置
@@ -176,14 +176,13 @@ describe('API 集成测试', () => {
 
       // 应包含核心目录和文件
       const names = res.data.data.map((e) => e.name);
-      assert.ok(names.includes('cli'));
-      assert.ok(names.includes('core'));
-      assert.ok(names.includes('server'));
+      assert.ok(names.includes('apps'));
+      assert.ok(names.includes('packages'));
       assert.ok(names.includes('package.json'));
     });
 
     it('应返回指定子目录的内容', async () => {
-      const res = await request('GET', '/api/files?path=cli');
+      const res = await request('GET', '/api/files?path=apps/cli');
 
       assert.strictEqual(res.status, 200);
       assert.ok(res.data.success);
@@ -227,7 +226,7 @@ describe('API 集成测试', () => {
     });
 
     it('应返回目录详情', async () => {
-      const res = await request('GET', '/api/files/info?path=cli');
+      const res = await request('GET', '/api/files/info?path=apps/cli');
 
       assert.strictEqual(res.status, 200);
       assert.strictEqual(res.data.success, true);
@@ -498,7 +497,7 @@ describe('API 集成测试', () => {
     });
 
     it('应支持 * 通配符搜索', async () => {
-      const res = await request('GET', '/api/files/search?path=cli&pattern=*.js');
+      const res = await request('GET', '/api/files/search?path=apps/cli&pattern=*.js');
 
       assert.strictEqual(res.status, 200);
       assert.ok(res.data.success);

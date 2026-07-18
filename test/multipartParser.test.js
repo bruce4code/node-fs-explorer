@@ -6,7 +6,7 @@
  */
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
-const { parseMultipart, extractBoundary } = require('../lib/multipartParser');
+const { parseMultipart, extractBoundary } = require('../packages/node-utils/multipartParser');
 
 // =============================================
 // extractBoundary 测试

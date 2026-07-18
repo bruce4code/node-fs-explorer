@@ -6,7 +6,7 @@
  */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
-const Router = require('../server/router');
+const Router = require('../apps/server/router');
 
 // =============================================
 // 辅助函数：创建 mock req/res
