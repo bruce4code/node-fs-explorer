@@ -8,14 +8,24 @@ import * as Tabs from "@radix-ui/react-tabs";
 import * as Toast from "@radix-ui/react-toast";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { Activity, ArrowDownAZ, ChevronDown, ChevronRight, Download, File, FileCode2, FileImage, FileText, Folder, FolderOpen, FolderPlus, Hash, Info, LayoutPanelLeft, LoaderCircle, LogOut, Menu, MoreHorizontal, Pencil, RefreshCw, Search, Trash2, Upload, X } from "lucide-react";
-import { ChangeEvent, DragEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, CSSProperties, DragEvent, FormEvent, KeyboardEvent, PointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, displayDate, formatBytes, joinPath } from "@/lib/client-api";
 
 type SortKey = "name" | "type" | "size" | "modifiedTime";
+type SortDirection = "asc" | "desc";
 type Modal = { type: "mkdir" | "rename" | "delete"; entry?: FileEntry } | null;
 type UploadItem = { id: string; name: string; progress: number; state: "uploading" | "done" | "error"; error?: string };
 type WorkspaceView = "files" | "logs";
 type DetailsTab = "info" | "preview";
+type ResizeSide = "sidebar" | "details";
+
+const sortLabels: Record<SortKey, string> = { name: "名称", type: "类型", size: "大小", modifiedTime: "修改时间" };
+const SIDEBAR_WIDTH = { initial: 218, min: 180, max: 360 };
+const DETAILS_WIDTH = { initial: 310, min: 250, max: 500 };
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
 
 function IconFor({ entry }: { entry: FileEntry }) {
   if (entry.type === "directory") return <Folder size={18} className="folder-icon" />;
@@ -37,6 +47,7 @@ export function FileManager() {
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>("files");
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [modal, setModal] = useState<Modal>(null);
@@ -44,8 +55,11 @@ export function FileManager() {
   const [mobileNav, setMobileNav] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [detailsTab, setDetailsTab] = useState<DetailsTab>("info");
+  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_WIDTH.initial);
+  const [detailsWidth, setDetailsWidth] = useState(DETAILS_WIDTH.initial);
   const [toast, setToast] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
+  const resize = useRef<{ side: ResizeSide; startX: number; startWidth: number } | null>(null);
 
   const loadDirectory = useCallback(async (nextPath = path) => {
     setWorkspaceView("files");
@@ -62,10 +76,14 @@ export function FileManager() {
   const shownEntries = useMemo(() => [...entries]
     .filter((entry) => entry.name.toLowerCase().includes(query.toLowerCase()))
     .sort((a, b) => {
-      if (a.type !== b.type) return a.type === "directory" ? -1 : 1;
-      if (sortKey === "size") return (a.size || 0) - (b.size || 0);
-      return String(a[sortKey] || "").localeCompare(String(b[sortKey] || ""), "zh-CN", { numeric: true });
-    }), [entries, query, sortKey]);
+      const aValue = sortKey === "size" ? a.size || 0 : String(a[sortKey] || "");
+      const bValue = sortKey === "size" ? b.size || 0 : String(b[sortKey] || "");
+      const comparison = typeof aValue === "number" && typeof bValue === "number"
+        ? aValue - bValue
+        : String(aValue).localeCompare(String(bValue), "zh-CN", { numeric: true });
+      if (comparison !== 0) return sortDirection === "asc" ? comparison : -comparison;
+      return a.name.localeCompare(b.name, "zh-CN", { numeric: true });
+    }), [entries, query, sortKey, sortDirection]);
 
   const crumbs = path === "." ? [] : path.split("/").filter(Boolean);
   const selectedPath = selected ? joinPath(path, selected.name) : "";
@@ -151,6 +169,38 @@ export function FileManager() {
 
   async function logout() { await fetch("/api/session/logout", { method: "POST" }); window.location.href = "/login"; }
 
+  function startResize(event: PointerEvent<HTMLDivElement>, side: ResizeSide) {
+    resize.current = { side, startX: event.clientX, startWidth: side === "sidebar" ? sidebarWidth : detailsWidth };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function resizePanels(event: PointerEvent<HTMLDivElement>) {
+    if (!resize.current) return;
+    const delta = event.clientX - resize.current.startX;
+    if (resize.current.side === "sidebar") {
+      setSidebarWidth(clamp(resize.current.startWidth + delta, SIDEBAR_WIDTH.min, SIDEBAR_WIDTH.max));
+    } else {
+      setDetailsWidth(clamp(resize.current.startWidth - delta, DETAILS_WIDTH.min, DETAILS_WIDTH.max));
+    }
+  }
+
+  function stopResize(event: PointerEvent<HTMLDivElement>) {
+    resize.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  }
+
+  function resizeWithKeyboard(event: KeyboardEvent<HTMLDivElement>, side: ResizeSide) {
+    const bounds = side === "sidebar" ? SIDEBAR_WIDTH : DETAILS_WIDTH;
+    const setWidth = side === "sidebar" ? setSidebarWidth : setDetailsWidth;
+    if (event.key === "Home") { event.preventDefault(); setWidth(bounds.min); return; }
+    if (event.key === "End") { event.preventDefault(); setWidth(bounds.max); return; }
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    const step = event.shiftKey ? 40 : 12;
+    const delta = event.key === "ArrowRight" ? step : -step;
+    setWidth((width) => clamp(width + (side === "sidebar" ? delta : -delta), bounds.min, bounds.max));
+  }
+
   const sidebar = <>
     <div className="brand"><div className="brand-mark small"><span /><span /><span /></div><div><strong>Node FS</strong><small>Explorer</small></div></div>
     <nav className="side-nav" aria-label="主导航">
@@ -164,8 +214,9 @@ export function FileManager() {
   return (
     <Toast.Provider swipeDirection="right">
       <Tooltip.Provider delayDuration={300}>
-        <main className="workspace" onDragOver={(e) => e.preventDefault()} onDrop={drop}>
+        <main className="workspace" style={{ "--sidebar-width": `${sidebarWidth}px`, "--details-width": `${detailsWidth}px` } as CSSProperties} onDragOver={(e) => e.preventDefault()} onDrop={drop}>
           <aside className="sidebar desktop-only">{sidebar}</aside>
+          <div className="resize-handle resize-handle-sidebar" role="separator" aria-orientation="vertical" aria-label="调整左侧导航宽度" aria-valuemin={SIDEBAR_WIDTH.min} aria-valuemax={SIDEBAR_WIDTH.max} aria-valuenow={sidebarWidth} tabIndex={0} onPointerDown={(event) => startResize(event, "sidebar")} onPointerMove={resizePanels} onPointerUp={stopResize} onPointerCancel={stopResize} onKeyDown={(event) => resizeWithKeyboard(event, "sidebar")} />
           <Dialog.Root open={mobileNav} onOpenChange={setMobileNav}><Dialog.Portal><Dialog.Overlay className="dialog-overlay" /><Dialog.Content className="mobile-drawer"><Dialog.Title className="sr-only">导航</Dialog.Title>{sidebar}</Dialog.Content></Dialog.Portal></Dialog.Root>
           <section className="browser-panel">
             <header className="topbar">
@@ -179,7 +230,7 @@ export function FileManager() {
             </header>
             {workspaceView === "files" ? <><div className="commandbar">
               <div className="search-box"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="筛选当前目录" /><kbd>⌘ K</kbd></div>
-              <DropdownMenu.Root><DropdownMenu.Trigger asChild><button className="secondary-button"><ArrowDownAZ size={16} />排序<ChevronDown size={14} /></button></DropdownMenu.Trigger><DropdownMenu.Portal><DropdownMenu.Content className="dropdown" align="end">{(["name", "type", "size", "modifiedTime"] as SortKey[]).map((key) => <DropdownMenu.Item key={key} onSelect={() => setSortKey(key)}>{({name:"名称",type:"类型",size:"大小",modifiedTime:"修改时间"})[key]}</DropdownMenu.Item>)}</DropdownMenu.Content></DropdownMenu.Portal></DropdownMenu.Root>
+              <DropdownMenu.Root><DropdownMenu.Trigger asChild><button className="secondary-button"><ArrowDownAZ size={16} /><span>排序：{sortLabels[sortKey]}（{sortDirection === "asc" ? "升序" : "降序"}）</span><ChevronDown size={14} /></button></DropdownMenu.Trigger><DropdownMenu.Portal><DropdownMenu.Content className="dropdown" align="end">{(["name", "type", "size", "modifiedTime"] as SortKey[]).map((key) => <DropdownMenu.Item key={key} onSelect={() => { if (key === sortKey) setSortDirection((direction) => direction === "asc" ? "desc" : "asc"); else { setSortKey(key); setSortDirection(key === "modifiedTime" ? "desc" : "asc"); } }}>{sortLabels[key]}{key === sortKey ? `（${sortDirection === "asc" ? "升序" : "降序"}）` : ""}</DropdownMenu.Item>)}</DropdownMenu.Content></DropdownMenu.Portal></DropdownMenu.Root>
               <button className="secondary-button compact-action" onClick={() => setModal({ type: "mkdir" })}><FolderPlus size={16} /><span>新建文件夹</span></button>
               <button className="primary-button compact-action" onClick={() => fileInput.current?.click()}><Upload size={16} /><span>上传</span></button>
               <input ref={fileInput} type="file" multiple hidden onChange={choose} />
@@ -190,6 +241,7 @@ export function FileManager() {
             </div>
             <footer className="statusbar"><span>{shownEntries.length} 个项目</span><span>文件根目录受服务端路径策略保护</span></footer></> : <><div className="logs-toolbar"><div><Activity size={18} /><span><strong>操作记录</strong><small>最近 50 条文件系统操作</small></span></div><button className="icon-button" onClick={() => void loadLogs()} aria-label="刷新操作记录"><RefreshCw size={17} /></button></div><div className="file-area log-area">{loading ? <div className="state"><LoaderCircle className="spin" />正在读取操作记录</div> : error ? <div className="state error-state"><strong>操作记录加载失败</strong><span>{error}</span><button onClick={() => void loadLogs()}>重试</button></div> : logs.length === 0 ? <div className="state"><Activity size={32} /><strong>暂时没有操作记录</strong><span>文件操作会显示在这里。</span></div> : <div className="log-list">{[...logs].reverse().map((log, index) => <article className="log-row" key={`${log.timestamp}-${log.operation}-${log.path}-${index}`}><span className="log-icon"><Activity size={16} /></span><div><strong>{log.operation}</strong><code>{log.path || "."}</code></div><time dateTime={log.timestamp}>{displayDate(log.timestamp)}</time></article>)}</div>}</div><footer className="statusbar"><span>{logs.length} 条记录</span><span>记录仅保存在当前服务进程内</span></footer></>}
           </section>
+          <div className="resize-handle resize-handle-details" role="separator" aria-orientation="vertical" aria-label="调整右侧详情宽度" aria-valuemin={DETAILS_WIDTH.min} aria-valuemax={DETAILS_WIDTH.max} aria-valuenow={detailsWidth} tabIndex={0} onPointerDown={(event) => startResize(event, "details")} onPointerMove={resizePanels} onPointerUp={stopResize} onPointerCancel={stopResize} onKeyDown={(event) => resizeWithKeyboard(event, "details")} />
           {detailsOpen && <aside className="details-panel"><div className="details-title"><div><span className="large-file-icon">{selected ? <IconFor entry={selected} /> : <Info size={21} />}</span><div><strong>{selected?.name || "项目详情"}</strong><small>{selected ? selectedPath : "选择一个项目查看信息"}</small></div></div><button className="icon-button" onClick={() => setDetailsOpen(false)} aria-label="关闭详情"><X size={17} /></button></div>{selected ? <Tabs.Root value={detailsTab} onValueChange={(value) => { const nextTab = value as DetailsTab; setDetailsTab(nextTab); if (nextTab === "preview") void loadPreview(); }}><Tabs.List className="tabs"><Tabs.Trigger value="info">信息</Tabs.Trigger>{selected.type === "file" && <Tabs.Trigger value="preview">预览</Tabs.Trigger>}</Tabs.List><Tabs.Content value="info" className="tab-content">{info ? <dl className="metadata"><div><dt>类型</dt><dd>{info.type === "directory" ? "文件夹" : "文件"}</dd></div><div><dt>大小</dt><dd>{formatBytes(info.size)}</dd></div><div><dt>权限</dt><dd className="mono">{info.permissions}</dd></div><div><dt>修改时间</dt><dd>{new Date(info.modifiedTime).toLocaleString("zh-CN")}</dd></div><div><dt>完整路径</dt><dd className="mono path-value">{info.fullPath}</dd></div></dl> : <div className="state mini"><LoaderCircle className="spin" /></div>}{selected.type === "file" && <><button className="secondary-button full" onClick={loadHash}><Hash size={15} />计算 SHA-256</button>{hash && <div className="hash-box"><span>SHA-256</span><code>{hash.hash}</code></div>}<a className="primary-button full" href={`/api/backend/files/download?path=${encodeURIComponent(selectedPath)}`}><Download size={16} />下载文件</a></>}</Tabs.Content>{selected.type === "file" && <Tabs.Content value="preview" className="preview-pane">{!preview ? <div className="state mini"><LoaderCircle className="spin" /></div> : preview.type === "image" ? <img /* eslint-disable-line @next/next/no-img-element -- data URL is returned by the API */ src={preview.content} alt={selected.name} /> : <pre>{preview.content}</pre>}</Tabs.Content>}</Tabs.Root> : <div className="empty-detail"><File size={36} /><p>单击文件查看详情，双击文件夹进入目录。</p></div>}</aside>}
           {uploads.length > 0 && <div className="upload-tray"><div className="tray-title"><strong>上传队列</strong><button onClick={() => setUploads((items) => items.filter((item) => item.state === "uploading"))}><X size={15} /></button></div>{uploads.slice(-4).map((item) => <div className="upload-item" key={item.id}><div><span>{item.name}</span><small>{item.state === "error" ? item.error : item.state === "done" ? "上传完成" : `${item.progress}%`}</small></div><Progress.Root className="progress" value={item.progress}><Progress.Indicator style={{ transform: `translateX(-${100 - item.progress}%)` }} /></Progress.Root></div>)}</div>}
           <Dialog.Root open={!!modal} onOpenChange={(open) => !open && setModal(null)}><Dialog.Portal><Dialog.Overlay className="dialog-overlay" /><Dialog.Content className="dialog-content"><Dialog.Title>{modal?.type === "mkdir" ? "新建文件夹" : modal?.type === "rename" ? "重命名" : "删除项目"}</Dialog.Title><Dialog.Description>{modal?.type === "delete" ? `“${modal.entry?.name}”将被永久删除，此操作无法撤销。` : modal?.type === "rename" ? "输入新的文件或文件夹名称。" : "文件夹将创建在当前目录。"}</Dialog.Description><form onSubmit={handleModal}>{modal?.type !== "delete" && <input name="name" defaultValue={modal?.entry?.name || ""} autoFocus required />}<div className="dialog-actions"><Dialog.Close asChild><button type="button" className="secondary-button">取消</button></Dialog.Close><button className={modal?.type === "delete" ? "danger-button" : "primary-button"}>{modal?.type === "delete" ? "确认删除" : "保存"}</button></div></form></Dialog.Content></Dialog.Portal></Dialog.Root>
