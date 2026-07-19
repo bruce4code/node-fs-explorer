@@ -25,7 +25,7 @@ try {
 
 // 如果没有配置用户，提供一个演示用户
 if (Object.keys(users).length === 0) {
-  users = { admin: 'admin123' };
+  users = { admin: 'pass123' };
 }
 
 // JWT 密钥
