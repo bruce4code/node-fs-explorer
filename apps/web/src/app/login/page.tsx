@@ -1,13 +1,19 @@
+"use client";
+
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { LoginForm } from "@/components/login-form";
+import { useLocale } from "@/components/locale-provider";
 
 export default function LoginPage() {
+  const { t } = useLocale();
   return (
     <main className="login-shell">
       <section className="login-panel" aria-labelledby="login-title">
+        <div className="login-language"><LanguageSwitcher /></div>
         <div className="brand-mark" aria-hidden="true"><span /><span /><span /></div>
         <p className="eyebrow">NODE FS EXPLORER</p>
-        <h1 id="login-title">登录文件工作台</h1>
-        <p className="muted">使用文件服务中配置的账户继续。</p>
+        <h1 id="login-title">{t("loginTitle")}</h1>
+        <p className="muted">{t("loginHint")}</p>
         <LoginForm />
       </section>
       <aside className="login-aside" aria-hidden="true">

@@ -1,9 +1,9 @@
 import type { ApiResponse } from "@file-manager/contracts";
 
-export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+export async function api<T>(path: string, init?: RequestInit, onUnauthorized = () => window.location.assign("/login")): Promise<T> {
   const response = await fetch(`/api/backend${path}`, init);
   if (response.status === 401) {
-    window.location.href = "/login";
+    onUnauthorized();
     throw new Error("登录已失效");
   }
   const payload = (await response.json()) as ApiResponse<T>;

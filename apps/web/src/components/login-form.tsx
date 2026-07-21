@@ -2,10 +2,12 @@
 
 import { FormEvent, useState } from "react";
 import { ArrowRight, LockKeyhole, UserRound } from "lucide-react";
+import { useLocale } from "@/components/locale-provider";
 
 const DEMO_ACCOUNT = { username: "admin", password: "pass123" };
 
 export function LoginForm() {
+  const { t } = useLocale();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState("");
@@ -32,11 +34,11 @@ export function LoginForm() {
 
   return (
     <form className="login-form" onSubmit={submit}>
-      <label><span>用户名</span><div className="input-shell"><UserRound size={16} /><input name="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" required autoFocus /></div></label>
-      <label><span>密码</span><div className="input-shell"><LockKeyhole size={16} /><input name="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></div></label>
+      <label><span>{t("username")}</span><div className="input-shell"><UserRound size={16} /><input name="username" value={username} onChange={(event) => setUsername(event.target.value)} autoComplete="username" required autoFocus /></div></label>
+      <label><span>{t("password")}</span><div className="input-shell"><LockKeyhole size={16} /><input name="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required /></div></label>
       {error && <p className="form-error" role="alert">{error}</p>}
-      <button type="button" className="secondary-button demo-account-button" disabled={loading} onClick={() => { setUsername(DEMO_ACCOUNT.username); setPassword(DEMO_ACCOUNT.password); setError(""); }}>使用演示账号</button>
-      <button className="primary-button" disabled={loading}>{loading ? "正在验证..." : "进入工作台"}<ArrowRight size={16} /></button>
+      <button type="button" className="secondary-button demo-account-button" disabled={loading} onClick={() => { setUsername(DEMO_ACCOUNT.username); setPassword(DEMO_ACCOUNT.password); setError(""); }}>{t("demoAccount")}</button>
+      <button className="primary-button" disabled={loading}>{loading ? t("verifying") : t("signIn")}<ArrowRight size={16} /></button>
     </form>
   );
 }

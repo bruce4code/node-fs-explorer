@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
+import { LocaleProvider } from "@/components/locale-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Node FS Explorer",
-  description: "本地文件管理工作台",
+  description: "Local file management workspace",
 };
 
 export default function RootLayout({
@@ -15,10 +16,10 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="zh-CN"
+      lang="en"
       className={`${GeistSans.variable} ${GeistMono.variable}`}
     >
-      <body>{children}</body>
+      <body><LocaleProvider>{children}</LocaleProvider></body>
     </html>
   );
 }
