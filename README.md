@@ -29,16 +29,22 @@ English | [中文](#概述)
 ## 📸 Screenshots
 
 <p align="center">
+  <img src="assets/screenshots/login_page.png" alt="Login page" width="70%" />
+</p>
+
+<p align="center">
   <img src="assets/screenshots/home_page.png" alt="Web console — file manager" width="70%" />
 </p>
 
 <p align="center">
-  <img src="assets/screenshots/login_page.png" alt="Login page" width="45%" />
-  <img src="assets/screenshots/upload_showcase.png" alt="Upload showcase" width="45%" />
+  <img src="assets/screenshots/upload_showcase.png" alt="Upload showcase" width="70%" />
+</p>
+
+<p align="center">
   <img src="assets/screenshots/activity_page.png" alt="Activity log page" width="70%" />
 </p>
 
-*Home page (file manager) · Login (BFF session) · Upload showcase · Activity log*
+*Login (BFF session) · Home page (file manager) · Upload showcase · Activity log*
 
 ---
 
@@ -277,16 +283,22 @@ MIT
 ## 📸 界面预览
 
 <p align="center">
+  <img src="assets/screenshots/login_page.png" alt="登录页" width="70%" />
+</p>
+
+<p align="center">
   <img src="assets/screenshots/home_page.png" alt="Web 控制台 —— 文件管理" width="70%" />
 </p>
 
 <p align="center">
-  <img src="assets/screenshots/login_page.png" alt="登录页" width="45%" />
-  <img src="assets/screenshots/upload_showcase.png" alt="上传演示" width="45%" />
+  <img src="assets/screenshots/upload_showcase.png" alt="上传演示" width="70%" />
+</p>
+
+<p align="center">
   <img src="assets/screenshots/activity_page.png" alt="操作记录页" width="70%" />
 </p>
 
-*文件管理主页 · 登录（BFF 会话）· 上传演示 · 操作记录*
+*登录（BFF 会话）· 文件管理主页 · 上传演示 · 操作记录*
 
 ---
 
