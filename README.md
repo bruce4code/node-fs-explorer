@@ -5,38 +5,89 @@
 <h1 align="center">node-fs-explorer</h1>
 
 <p align="center">
-  <strong>A zero-dependency Node.js file management system — from CLI to production-ready API.</strong>
+  <strong>A production-ready, zero-dependency file management system built from scratch with Node.js.</strong><br />
+  <em>Monorepo · Web Console + REST API + CLI · 143 tests · CI/CD · JWT Auth · Streaming Upload</em>
 </p>
 
 <p align="center">
   <a href="https://github.com/bruce4code/node-fs-explorer/actions/workflows/ci.yml"><img src="https://github.com/bruce4code/node-fs-explorer/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <img src="https://img.shields.io/badge/node-%3E%3D18.0-brightgreen" alt="Node version" />
-  <img src="https://img.shields.io/badge/dependencies-0-blue" alt="Zero dependencies" />
+  <img src="https://img.shields.io/badge/architecture-pnpm%20monorepo-blue" alt="Monorepo" />
+  <img src="https://img.shields.io/badge/backend%20dependencies-0-blue" alt="Zero dependencies" />
   <img src="https://img.shields.io/badge/tests-143%20passing-green" alt="Tests" />
+  <img src="https://img.shields.io/badge/Next.js-16-black?logo=next.js" alt="Next.js 16" />
+  <img src="https://img.shields.io/badge/TypeScript-5-blue" alt="TypeScript" />
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License" />
 </p>
 
 ---
 
-English | [中文](#-概述)
+English | [中文](#概述)
+
+---
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="assets/screenshots/home_page.png" alt="Web console — file manager" width="70%" />
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/login_page.png" alt="Login page" width="45%" />
+  <img src="assets/screenshots/upload_showcase.png" alt="Upload showcase" width="45%" />
+  <img src="assets/screenshots/activity_page.png" alt="Activity log page" width="70%" />
+</p>
+
+*Home page (file manager) · Login (BFF session) · Upload showcase · Activity log*
+
+---
 
 ## 📖 Overview
 
-**node-fs-explorer** is a hands-on project for systematically learning Node.js core knowledge. It builds a complete file management system **using only native Node.js modules** (`fs`, `http`, `path`, `stream`, `crypto`, `events`, etc.) — **zero npm dependencies**.
+**node-fs-explorer** is a complete file management system built **from scratch using only Node.js native modules** (`fs`, `http`, `path`, `stream`, `crypto`, `events`, `cluster`) — **zero backend dependencies**. It demonstrates deep Node.js engineering: hand-written JWT, streaming multipart parser, chunked resumable uploads, cluster multi-process, rate limiting, and a BFF (Backend-for-Frontend) web console.
 
-> Designed for developers who want to deeply understand Node.js internals rather than just using frameworks.
+> Two audiences in one: an **interview-ready Node.js deep-dive** for engineers, and a **functional, deployable product** for end users.
 
-### Learning Path
+---
 
-The project is organized into 5 progressive phases:
+## 🏗️ Architecture — pnpm Monorepo
 
-| Phase | Focus | Core Modules |
+The project is structured as a **pnpm workspace monorepo** with clear separation of apps and reusable packages:
+
+```
+node-fs-explorer/
+├── apps/
+│   ├── web/                # Next.js 16 console + BFF proxy (HttpOnly JWT cookie)
+│   ├── server/             # Zero-dependency Node.js HTTP API + cluster mode
+│   └── cli/                # CLI commands (list/read/info/mkdir/...)
+├── packages/
+│   ├── core/               # Shared file-system business logic (fileService, chunkUpload)
+│   ├── node-utils/         # JWT, multipart parsers, logger — zero-dependency libs
+│   └── contracts/          # TypeScript API contracts shared by web & server
+└── test/                   # 143 tests (node:test)
+```
+
+**Why monorepo?**
+
+- **Shared contracts** — `packages/contracts` types are consumed by both the Next.js app and the API, keeping request/response shapes in sync with zero drift.
+- **Atomic changes** — a feature spanning frontend + backend ships in a single commit/PR.
+- **Single workflow** — one `pnpm install`, one test command, one CI pipeline.
+- **Reusable packages** — `core` and `node-utils` are publishable and testable in isolation.
+
+---
+
+## 💻 Tech Stack
+
+| Layer | Technology | Notes |
 |---|---|---|
-| **1** | CLI file operations | `fs`, `path`, `process`, `readline` |
-| **2** | RESTful Web API | `http`, `url`, `buffer`, `stream` |
-| **3** | Advanced features | `events`, `crypto`, `stream.pipeline` |
-| **4** | Security & Performance | `cluster`, timing-safe comparison, rate limiting |
-| **5** | Large file upload | streaming multipart, chunked upload, MD5 dedup |
+| Backend | **Node.js native modules only** | `http`, `stream`, `crypto`, `cluster`, `events` — zero npm deps |
+| Web console | **Next.js 16 + React 19 + TypeScript** | App Router, Server Components, BFF API routes |
+| UI | Radix UI + Tailwind CSS 4 | Accessible primitives, dark console styling |
+| Auth | Hand-written **JWT (HS256)** | `crypto.timingSafeEqual`, blacklist, refresh tokens |
+| Upload | **Streaming multipart + chunked upload** | Resumable, idempotent, MD5 instant upload |
+| Testing | **`node:test` (backend) + Vitest (frontend)** | 143 backend tests, no test framework on backend |
+| Tooling | pnpm workspaces · GitHub Actions · Turbopack | CI on Node 18/20/22 |
+| Deploy | Ready for **Vercel (web) + VPS (API)** | BFF proxies cross-origin auth for you |
 
 ---
 
@@ -72,12 +123,14 @@ The project is organized into 5 progressive phases:
 
 ### Key Highlights
 
-- **Zero dependencies** — Every line is hand-written for learning
-- **JWT implementation from scratch** — `lib/jwt.js` with HMAC-SHA256, expiration, blacklist, refresh
-- **Streaming multipart parser** — `lib/multipartStreamParser.js` with state machine
-- **Chunked upload** — Resumable, idempotent, MD5 instant upload, streaming merge
-- **Security by design** — Path traversal prevention, timing-safe comparison, rate limiting
-- **143 tests, all native** — Uses Node.js built-in `node:test` framework
+- **Zero backend dependencies** — HTTP server, router, body parser, JWT, multipart parser: all hand-written
+- **pnpm monorepo** — `apps/` + `packages/` with shared TypeScript contracts
+- **JWT from scratch** — HMAC-SHA256, expiration, blacklist, refresh (`packages/node-utils/jwt.js`)
+- **Streaming multipart parser** — state-machine `Transform` stream, no full-buffer memory blowup
+- **Chunked upload** — resumable, idempotent, MD5 instant upload, streaming merge
+- **Web console (Next.js 16)** — BFF proxy keeps JWT in HttpOnly cookie, protects against XSS
+- **143 backend tests** — native `node:test`, CI on Node 18/20/22
+- **Security by design** — path traversal guard, timing-safe compare, rate limiting, body/file size limits
 
 ---
 
@@ -91,7 +144,7 @@ cd node-fs-explorer
 # Install workspace dependencies
 pnpm install
 
-# Run tests
+# Run backend tests
 pnpm test:backend
 
 # CLI mode
@@ -100,31 +153,36 @@ pnpm cli -- read package.json
 pnpm cli -- search . "*.js"
 pnpm cli -- hash package.json sha256
 
-# API mode (single process)
+# API mode (single process) on :3300
 JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' pnpm dev:server
+
+# Web console on :3000 (Next.js, auto-proxies API to :3300)
+JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' pnpm dev
 
 # API mode (multi-process cluster)
 JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' pnpm start
-
-# Auth enabled
-JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' pnpm dev
 ```
+
+Open http://localhost:3000 and sign in with `admin` / `pass123` (demo). The Next.js app keeps the JWT in an HttpOnly cookie and forwards requests to `FILE_API_URL` (defaults to `http://127.0.0.1:3300`).
 
 ---
 
 ## 🧪 Testing
 
 ```bash
-pnpm test:backend     # Run the backend suite
+pnpm test:backend     # Full backend suite (143 tests)
 pnpm test:unit        # Unit tests only
 pnpm test:api         # API integration tests
+pnpm test             # Backend + frontend (Vitest) suites
 ```
 
-All tests use Node.js native [`node:test`](https://nodejs.org/api/test.html) — no extra test framework required.
+All backend tests use Node.js native [`node:test`](https://nodejs.org/api/test.html) — **no test framework required on the backend**. Frontend uses Vitest.
 
 ---
 
 ## 🗺️ Knowledge Map
+
+Each phase maps to concrete Node.js topics and interview questions:
 
 ### Phase 1 — CLI File Operations
 
@@ -184,59 +242,10 @@ All tests use Node.js native [`node:test`](https://nodejs.org/api/test.html) —
 | Timing attack | `crypto.timingSafeEqual` for all comparisons |
 | Rate limiting | Per-IP sliding window with cleanup |
 | JWT auth | HMAC-SHA256, expiration, blacklist, refresh |
+| BFF cookie | JWT stored in HttpOnly cookie, never exposed to JS |
 | Body size limit | 50MB max request body |
 | Token revocation | In-memory blacklist with auto-cleanup |
 | File size check | 500MB download limit, 1GB upload limit |
-
----
-
-## 🏗️ Project Structure
-
-```
-node-fs-explorer/
-├── apps/
-│   ├── web/                # Next.js file management console and BFF
-│   ├── cli/                # CLI commands (list/read/info/mkdir/...)
-│   └── server/             # HTTP API server
-├── packages/
-│   ├── core/               # Shared file-system business logic
-│   ├── node-utils/         # JWT, multipart and logger utilities
-│   └── contracts/          # Web API TypeScript contracts
-├── test/                   # Native node:test suite
-├── pnpm-workspace.yaml
-├── package.json
-├── README.md
-```
-
-### Web console
-
-```bash
-JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' pnpm dev
-```
-
-Open http://localhost:3000 and sign in with the configured user. The Next.js app keeps the JWT in an HttpOnly cookie and forwards requests to `FILE_API_URL` (defaults to `http://127.0.0.1:3300`).
-
-```
-Legacy structure (before the pnpm migration):
-├── server/                 # HTTP API server
-│   ├── index.js            # Entry point with middleware chain
-│   ├── router.js           # Native URL router
-│   ├── cluster.js          # Multi-process launcher
-│   ├── middleware/         # cors, bodyParser, auth, jwtAuth, rateLimit
-│   ├── controllers/        # fileController, authController, uploadController
-│   └── routes/             # Route definitions
-├── core/                   # Shared business logic
-│   ├── fileService.js      # File CRUD operations
-│   ├── chunkUploadService.js # Chunked upload engine
-│   ├── pathValidator.js    # Path security
-│   └── operationLogger.js  # EventEmitter-based logging
-├── lib/                    # Utilities
-│   ├── jwt.js              # JWT implementation (zero deps)
-│   ├── multipartParser.js  # Buffer-based multipart parser
-│   ├── multipartStreamParser.js # Streaming multipart parser
-│   └── logger.js           # Colored console logger
-└── test/                   # 143 tests (node:test)
-```
 
 ---
 
@@ -251,39 +260,71 @@ MIT
 <h1 align="center">node-fs-explorer</h1>
 
 <p align="center">
-  <strong>零依赖的 Node.js 文件管理系统 —— 从命令行到生产级 API 的完整实战。</strong>
+  <strong>从零手写的生产级文件管理系统 —— 零依赖 Node.js 后端 + Next.js 前端，Monorepo 架构。</strong><br />
+  <em>Web 控制台 · REST API · CLI · 143 个测试 · CI/CD · JWT 鉴权 · 流式上传</em>
 </p>
 
 ---
 
-## 📖 概述
+## 概述
 
-**node-fs-explorer** 是一个系统学习 Node.js 核心知识的实战项目，**纯 Node.js 原生模块**构建（`fs`、`http`、`path`、`stream`、`crypto`、`events` 等），**零 npm 依赖**。
+**node-fs-explorer** 是一个**从零手写、零后端依赖**的完整文件管理系统，覆盖 CLI、REST API、Web 控制台三层形态。后端全部使用 Node.js 原生模块（`fs`、`http`、`path`、`stream`、`crypto`、`events`、`cluster`）实现 —— **手写 JWT、流式 multipart 解析器、分片断点续传、Cluster 多进程、滑动窗口限流**，并配有基于 Next.js 的 BFF（Backend-for-Frontend）Web 控制台。
 
-> 适合想深入理解 Node.js 底层原理而非只会用框架的开发者。
+> 一份代码两个受众：对工程师它是**面试级 Node.js 深度实战**，对使用者它是**可部署的产品级应用**。
 
-### 学习路径
+---
 
-5 个渐进式阶段：
+## 🏗️ 架构 —— pnpm Monorepo
 
-| 阶段 | 重点 | 核心模块 |
+项目采用 **pnpm workspace monorepo** 结构，应用与可复用包清晰分层：
+
+```
+node-fs-explorer/
+├── apps/
+│   ├── web/                # Next.js 16 控制台 + BFF 代理（HttpOnly JWT Cookie）
+│   ├── server/             # 零依赖 Node.js HTTP API + Cluster 多进程
+│   └── cli/                # CLI 命令（list/read/info/mkdir/...）
+├── packages/
+│   ├── core/               # 共享文件业务逻辑（fileService、chunkUpload）
+│   ├── node-utils/         # JWT、multipart 解析器、logger —— 零依赖工具库
+│   └── contracts/          # 前后端共享的 TypeScript API 类型
+└── test/                   # 143 个测试（node:test）
+```
+
+**为什么用 Monorepo？**
+
+- **类型共享** — `packages/contracts` 同时被 Next.js 前端和 API 后端引用，接口字段零漂移
+- **原子提交** — 前后端联动的功能一个 PR 完成
+- **单一工作流** — 一次 `pnpm install`、一条测试命令、一条 CI 流水线
+- **包可复用** — `core` 与 `node-utils` 独立可测试、可发布
+
+---
+
+## 💻 技术栈
+
+| 分层 | 技术 | 说明 |
 |---|---|---|
-| **1** | CLI 文件操作 | `fs`, `path`, `process`, `readline` |
-| **2** | RESTful Web API | `http`, `url`, `buffer`, `stream` |
-| **3** | 进阶功能 | `events`, `crypto`, `stream.pipeline` |
-| **4** | 安全与性能 | `cluster`, 恒定时间比较, 限流 |
-| **5** | 大文件上传 | 流式 multipart, 分片上传, MD5 秒传 |
+| 后端 | **纯 Node.js 原生模块** | `http`、`stream`、`crypto`、`cluster`、`events` —— 零 npm 依赖 |
+| Web 控制台 | **Next.js 16 + React 19 + TypeScript** | App Router、Server Components、BFF API 路由 |
+| UI | Radix UI + Tailwind CSS 4 | 无障碍基础组件、深色控制台风格 |
+| 鉴权 | 手写 **JWT（HS256）** | `crypto.timingSafeEqual`、黑名单、刷新令牌 |
+| 上传 | **流式 multipart + 分片上传** | 断点续传、幂等、MD5 秒传 |
+| 测试 | 后端 **`node:test`** + 前端 Vitest | 143 个后端测试，后端零测试框架 |
+| 工具链 | pnpm workspaces · GitHub Actions · Turbopack | Node 18/20/22 三版本 CI |
+| 部署 | 适配 **Vercel（前端）+ VPS（API）** | BFF 代理自动处理跨域与鉴权 |
 
 ---
 
 ## ✨ 功能亮点
 
-- **零依赖** — 每一行代码都是手写的，适合学习
-- **手写 JWT** — `lib/jwt.js`，HMAC-SHA256、过期校验、黑名单、刷新令牌
-- **流式 multipart 解析器** — 基于状态机的 Transform Stream
+- **零后端依赖** — HTTP 服务器、路由、body 解析、JWT、multipart 解析全部手写
+- **pnpm monorepo** — `apps/` + `packages/`，共享 TypeScript 契约
+- **手写 JWT** — HMAC-SHA256、过期、黑名单、刷新（`packages/node-utils/jwt.js`）
+- **流式 multipart 解析器** — 状态机 `Transform` Stream，大文件不占满内存
 - **分片上传** — 断点续传、幂等性、MD5 秒传、流式合并
-- **安全设计** — 路径穿越防护、恒定时间比较、限流、多级鉴权
-- **143 个测试** — 全部使用 Node.js 内置 `node:test` 框架
+- **Web 控制台（Next.js 16）** — BFF 代理将 JWT 存于 HttpOnly Cookie，防 XSS 窃取
+- **143 个后端测试** — 原生 `node:test`，Node 18/20/22 CI
+- **安全设计** — 路径穿越防护、恒定时间比较、限流、请求体/文件大小限制
 
 ---
 
@@ -294,36 +335,42 @@ MIT
 git clone https://github.com/bruce4code/node-fs-explorer.git
 cd node-fs-explorer
 
-# 运行测试（不需要安装！）
-npm test
+# 安装 workspace 依赖
+pnpm install
+
+# 运行后端测试
+pnpm test:backend
 
 # CLI 模式
-node cli list
-node cli read package.json
-node cli search . "*.js"
-node cli hash package.json sha256
+pnpm cli -- list
+pnpm cli -- read package.json
+pnpm cli -- search . "*.js"
+pnpm cli -- hash package.json sha256
 
-# API 模式（单进程）
-node server/index.js
+# API 模式（单进程，:3300）
+JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' pnpm dev:server
 
-# API 模式（多进程集群）
-node server/cluster.js
+# Web 控制台（:3000，Next.js 自动代理 API 到 :3300）
+JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' pnpm dev
 
-# 启用鉴权
-JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' node server/index.js
+# API 模式（多进程 Cluster）
+JWT_SECRET=my-secret JWT_USERS='{"admin":"pass123"}' pnpm start
 ```
+
+打开 http://localhost:3000 ，使用演示账号 `admin` / `pass123` 登录。Next.js 应用将 JWT 保存在 HttpOnly Cookie 中，并通过 `FILE_API_URL`（默认 `http://127.0.0.1:3300`）转发请求。
 
 ---
 
 ## 🧪 测试
 
 ```bash
-npm test              # 运行全部 143 个测试
-npm run test:unit     # 纯单元测试
-npm run test:api      # API 集成测试
+pnpm test:backend     # 后端全量测试（143 个）
+pnpm test:unit        # 纯单元测试
+pnpm test:api         # API 集成测试
+pnpm test             # 后端 + 前端（Vitest）全套
 ```
 
-所有测试使用 Node.js 原生 [`node:test`](https://nodejs.org/api/test.html)，无需额外测试框架。
+后端测试全部使用 Node.js 原生 [`node:test`](https://nodejs.org/api/test.html) —— **后端零测试框架**。前端使用 Vitest。
 
 ---
 
@@ -334,10 +381,10 @@ npm run test:api      # API 集成测试
 | `fs` | promises/sync/callback 三种 API | ⭐⭐⭐⭐⭐ |
 | `http` | 原生 HTTP 服务器，req/res 即 Stream | ⭐⭐⭐⭐⭐ |
 | `stream` | pipeline/pipe、背压、Transform | ⭐⭐⭐⭐⭐ |
-| `events` | EventEmitter、发布-订阅 | ⭐⭐⭐⭐⭐ |
+| `events` | EventEmitter、发布-订阅、内存泄漏 | ⭐⭐⭐⭐⭐ |
 | `crypto` | 哈希、HMAC、恒定时间比较 | ⭐⭐⭐⭐⭐ |
 | `cluster` | 多进程、负载均衡、进程管理 | ⭐⭐⭐⭐⭐ |
-| `path` | 路径解析、跨平台兼容 | ⭐⭐⭐⭐ |
+| `path` | 路径解析、穿越防护、跨平台 | ⭐⭐⭐⭐ |
 | `buffer` | 二进制数据操作 | ⭐⭐⭐⭐ |
 | `process` | argv/env/exit/信号处理 | ⭐⭐⭐⭐ |
 
@@ -351,36 +398,10 @@ npm run test:api      # API 集成测试
 | 计时攻击防护 | `crypto.timingSafeEqual` 恒定时间比较 |
 | 限流 | 基于 IP 的滑动窗口（默认 100 次/分钟） |
 | JWT 鉴权 | HMAC-SHA256、过期、黑名单、刷新 |
+| BFF Cookie | JWT 存于 HttpOnly Cookie，JS 无法读取 |
 | 请求体限制 | 最大 50MB |
 | Token 撤销 | 内存黑名单 + 自动清理 |
 | 文件大小限制 | 下载 500MB、上传 1GB 上限 |
-
----
-
-## 🏗️ 项目结构
-
-```
-node-fs-explorer/
-├── cli/                    # CLI 命令（list/read/info/mkdir/...）
-├── server/                 # HTTP API 服务
-│   ├── index.js            # 入口，中间件链
-│   ├── router.js           # 原生 URL 路由
-│   ├── cluster.js          # 多进程启动器
-│   ├── middleware/         # cors/bodyParser/auth/jwtAuth/rateLimit
-│   ├── controllers/        # fileController/authController/uploadController
-│   └── routes/             # 路由注册表
-├── core/                   # 共享业务逻辑
-│   ├── fileService.js      # 文件 CRUD 操作
-│   ├── chunkUploadService.js # 分片上传引擎
-│   ├── pathValidator.js    # 路径安全校验
-│   └── operationLogger.js  # EventEmitter 操作日志
-├── lib/                    # 工具库
-│   ├── jwt.js              # JWT 零依赖实现
-│   ├── multipartParser.js  # Buffer 版 multipart 解析
-│   ├── multipartStreamParser.js # 流式版 multipart 解析
-│   └── logger.js           # 彩色日志
-└── test/                   # 143 个测试（node:test）
-```
 
 ---
 
