@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20minimalist%20logo%20for%20a%20Node.js%20file%20explorer%20project%2C%20featuring%20a%20folder%20icon%20with%20a%20node%20leaf%2C%20clean%20lines%2C%20tech%20blue%20and%20green%20color%20scheme%2C%20flat%20design%20style&image_size=square_hd" width="120" alt="node-fs-explorer logo" />
+  <img src="assets/logo.png" width="120" alt="node-fs-explorer logo" />
 </p>
 
 <h1 align="center">node-fs-explorer</h1>
